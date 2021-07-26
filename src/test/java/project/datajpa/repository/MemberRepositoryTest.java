@@ -14,6 +14,8 @@ import project.datajpa.dto.MemberDto;
 import project.datajpa.entity.Member;
 import project.datajpa.entity.Team;
 
+import javax.persistence.EntityManager;
+import javax.persistence.PersistenceContext;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,9 @@ class MemberRepositoryTest {
     MemberRepository memberRepository;
     @Autowired
     TeamRepository teamRepository;
+
+    @PersistenceContext
+    EntityManager em;
 
     @Test
     public void testMember() {
@@ -269,4 +274,90 @@ class MemberRepositoryTest {
 
 
     }*/
+
+    @Test
+    @Rollback(value = false)
+    public void 벌크업데이트(){
+        memberRepository.save(new Member("member1",10));
+        memberRepository.save(new Member("member2",13));
+        memberRepository.save(new Member("member3",21));
+        memberRepository.save(new Member("member4",31));
+        memberRepository.save(new Member("member5",41));
+
+        int resultCount = memberRepository.bulkAgePlus(20);
+        /*
+        플러시 호출 타이밍.
+        1. em.flush() 을 통한 직접 호출
+        2. 트랜잭션 커밋 시 플러시 자동 호출
+        3. JPQL 쿼리 실행 시 플러시 자동 호출*/
+         //em.clear();//영속컨텍스트 깔끔히날림
+        //플러쉬 클리어해주는이유. 벌크연산은 영속성컨텍스트와 상관없이 DB에 접근
+        //DB에는분명히 업데이트가되었는데 영속성컨텍스트에 값은 그대로 남아있음;
+
+        List<Member> result = memberRepository.findByUsername("member5");
+        Member member5 = result.get(0);
+        System.out.println("member5 = " + member5);
+
+        assertThat(resultCount).isEqualTo(3);
+    }
+
+    @Test
+    public void findMemberLazy(){
+        Team teamA = new Team("teamA");
+        Team teamB = new Team("teamB");
+
+        teamRepository.save(teamA);
+        teamRepository.save(teamB);
+
+        Member member1 = new Member("member1", 10, teamA);
+        Member member2 = new Member("member2", 10, teamB);
+        memberRepository.save(member1);
+        memberRepository.save(member2);
+
+        em.flush();
+        em.clear();
+
+        //when
+        List<Member> members = memberRepository.findMemberEntityGraph();
+        /**
+         * member만 db에서 끌어온다.
+         * Team은 어떻게하나? lazy로딩이라 일단 Team은 프록시라는 가짜객체를 만들어둠( 텅텅빈)
+         * 실제 팀필드메서드를 가져올떄 진짜 데이터를 가져옴옴         */
+
+        for (Member member : members) {
+            System.out.println("member.getUsername() = " + member.getUsername());
+            System.out.println("member.getTeam().getClass() = " + member.getTeam().getClass());
+            System.out.println("===========>member.getTeam().getName() = " + member.getTeam().getName());
+        }
+    }
+
+    @Test
+    public void queryHint(){
+        //given
+        Member member1 = memberRepository.save(new Member("member1", 10));
+        em.flush();//여기까지실행해도 영속성 컨텍스트에 남아있다!
+        em.clear();//이시점에 다 날라감
+
+        //when
+        Member findMember = memberRepository.findReadOnlyByUsername("member1");
+        findMember.setUsername("member2");
+//변경감지의 단점 , 원본이있어야해 객체를 2개관리하는거나 마찬가지 (변경하기위해 원래데이터가 있어야겠지?)
+
+        em.flush();
+        //then
+
+    }
+
+    @Test
+    public void Lock(){
+        //given
+        Member member1 = memberRepository.save(new Member("member1", 10));
+        em.flush();//여기까지실행해도 영속성 컨텍스트에 남아있다!
+        em.clear();//이시점에 다 날라감
+
+        //when
+        List<Member> result = memberRepository.findLockByUsername("member1");
+
+
+    }
 }
