@@ -3,12 +3,14 @@ package project.datajpa.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import project.datajpa.dto.MemberDto;
 import project.datajpa.entity.Member;
+import project.datajpa.entity.Team;
 
+import javax.persistence.LockModeType;
+import javax.persistence.QueryHint;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -96,11 +98,46 @@ public interface MemberRepository extends JpaRepository<Member,Long>
      * (totalcount 조인을할필요가없는데 조인을해서 가져와서 성능이 망가짐
      * 해결방안: 카운트쿼리를 따로날리는게 좋음(엔 래프트 아우터 조인을 할필요가 없음)
      */
-    @Query(value = "select m from Member m left join m.team t "
+    @Query(value = "select m from Member m left join m.team t where m.age =:age "
             , countQuery = "select count(m.username) from Member m"  )
-    Page<Member> findByAge(int age, Pageable pageable);
+    Page<Member> findByAge(@Param("age") int age, Pageable pageable);
 
 /*    //페이징 슬라이스
     @Query("select m from Member m where m.age = :age")
     Slice<Member> findByAges(@Param("age") int age, Pageable pageable);*/
+
+    @Modifying(clearAutomatically = false)  // == .executeUpdate() 변경하는구나~  인자값처럼해주면 알아서 쿼리실행후 clear()를해준다
+    @Query("update Member m set m.age = m.age + 1 where m.age >= :age")
+    int bulkAgePlus(@Param("age") int age);
+
+    @Query(" select m from Member m ")
+    List<Member> findMembers();
+
+    @Query("select m from Member m left join fetch m.team")
+    List<Member> findMemberFetchJoin();
+
+    @Override
+    @EntityGraph(attributePaths = {"team"}) //페치조인 편하게
+    List<Member> findAll();
+
+    //쿼리와 혼합
+    @EntityGraph(attributePaths = {"team"}) 
+    @Query("select m from Member m")
+    List<Member> findMemberEntityGraph();
+
+    //혼합
+    //회원데이터를 쓸떄 팀그래프도 필요하겟는데?
+    @EntityGraph(attributePaths = {"team"})
+    List<Member> findEntityGraphByUsername(@Param("username") String username);
+
+
+    //HINT
+    //뭔가 JPA 가 하이버네이트에게 넘길수있도록 구멍을 열어놓은것
+    //아래처럼 설정을해놓으면 성능최적화를위해 그냥 스냅샷을 안만듬 (변경이 안된다고 가정하고 그냥 다무시,변경감지 체크안함)
+    @QueryHints(value = @QueryHint(name="org.hibernate.readOnly", value = "true") )
+    Member findReadOnlyByUsername(String username);
+
+    //LOCK
+    @Lock(LockModeType.PESSIMISTIC_WRITE)//JPA가 제공
+    List<Member> findLockByUsername(String username);
 }
