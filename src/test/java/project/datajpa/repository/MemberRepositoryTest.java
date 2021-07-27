@@ -318,7 +318,7 @@ class MemberRepositoryTest {
         em.clear();
 
         //when
-        List<Member> members = memberRepository.findMemberEntityGraph();
+        List<Member> members = memberRepository.findEntityGraphByUsername("member1");
         /**
          * member만 db에서 끌어온다.
          * Team은 어떻게하나? lazy로딩이라 일단 Team은 프록시라는 가짜객체를 만들어둠( 텅텅빈)
@@ -359,5 +359,10 @@ class MemberRepositoryTest {
         List<Member> result = memberRepository.findLockByUsername("member1");
 
 
+    }
+
+    @Test
+    public void callCustom(){
+        List<Member> result = memberRepository.findMemberCustom() ;
     }
 }
