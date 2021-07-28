@@ -19,7 +19,12 @@ spring:
       hibernate:
         #show_sql: true 엔 sout에 출력해서  안쓰는게좋다
         format_sql: true
-        default_batch_fetch_size: 100
+        #default_batch_fetch_size: 100
+  data:
+    web:
+      pageable:
+        default-page-size: 10
+        max-page-size: 2000
 logging:
   level:
     org.hibernate.SQL: debug
