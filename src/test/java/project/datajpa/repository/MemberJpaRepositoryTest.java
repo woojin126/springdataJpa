@@ -131,4 +131,14 @@ class MemberJpaRepositoryTest {
 
         assertThat(resultCount).isEqualTo(3);
     }
+
+    @Test
+    public void JpaEventBaseEntity(){
+        //given
+        Member member = new Member("member1");
+
+        //when
+
+        //then
+    }
 }
