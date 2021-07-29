@@ -1,6 +1,7 @@
 package project.datajpa.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -12,12 +13,26 @@ import project.datajpa.entity.Member;
 import project.datajpa.repository.MemberRepository;
 
 import javax.annotation.PostConstruct;
+import javax.servlet.http.HttpServlet;
 
 @RestController
-@RequiredArgsConstructor
 public class MemberController {
 
-    private final MemberRepository memberRepository;
+    private MemberRepository memberRepository;
+
+    public MemberController(MemberRepository memberRepository) {
+        System.out.println("생성자호출시점");
+        this.memberRepository = memberRepository;
+
+    }
+
+    @PostConstruct
+    public void init(){
+        System.out.println("@PostConstruct");
+        for(int i=0; i<100; i++){
+            memberRepository.save(new Member("user"+i, i));
+        }
+    }
 
 
     /**
@@ -38,12 +53,6 @@ public class MemberController {
 
     }
 
-    @PostConstruct
-    public void init(){
-        for(int i=0; i<100; i++){
-            memberRepository.save(new Member("user"+i, i));
-        }
-    }
 
 
     @GetMapping("/members/{id}")
