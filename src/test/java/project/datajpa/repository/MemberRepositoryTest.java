@@ -1,13 +1,12 @@
 package project.datajpa.repository;
 
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.internal.stubbing.answers.ThrowsException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Slice;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 import project.datajpa.dto.MemberDto;
@@ -360,9 +359,85 @@ class MemberRepositoryTest {
 
 
     }
-
     @Test
     public void callCustom(){
         List<Member> result = memberRepository.findMemberCustom() ;
+    }
+
+    @Test //명세서는 쓰지말자!
+    public void jpaSpecificationExecutor(){
+
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1",0,teamA);
+        Member m2 = new Member("m2",0,teamA);
+
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        //when
+        Specification<Member> spec = MemberSpec.username("m1").and(MemberSpec.teamName("teamA"));
+        List<Member> result = memberRepository.findAll(spec);
+
+        Assertions.assertThat(result.size()).isEqualTo(1);
+
+    }
+
+    @Test //문제점 left조인이 안됨... 문제점
+    public void queryByExample(){
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1",0,teamA);
+        Member m2 = new Member("m2",0,teamA);
+
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        //when
+        //Probe
+        Member member = new Member("m1");//엔티티 자체가 검색조건이 된다.
+        Team team = new Team("teamA");
+        member.setTeam(team);
+
+
+        ExampleMatcher ageIgnore = ExampleMatcher.matching()//Member엔티티에 age는 Primitive타입이라 NULL이아니라 무시를 해줘야함
+                .withIgnorePaths("age");
+        Example<Member> example = Example.of(member,ageIgnore);
+
+        List<Member> result = memberRepository.findAll(example);//스프링데이타JPA에서 기본으로 EXAMPLE을 담을수 있게함
+
+
+        assertThat(result.get(0).getUsername()).isEqualTo("m1");
+
+
+    }
+
+    @Test
+    public void projections(){
+        //given
+        Team teamA = new Team("teamA");
+        em.persist(teamA);
+
+        Member m1 = new Member("m1",0,teamA);
+        Member m2 = new Member("m2",0,teamA);
+
+        em.persist(m1);
+        em.persist(m2);
+
+        em.flush();
+        em.clear();
+
+        //when
+        memberRepository.findByUsername("m1")
     }
 }
