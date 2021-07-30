@@ -26,13 +26,13 @@ public class MemberController {
 
     }
 
-    @PostConstruct
+/*    @PostConstruct
     public void init(){
         System.out.println("@PostConstruct");
         for(int i=0; i<100; i++){
             memberRepository.save(new Member("user"+i, i));
         }
-    }
+    }*/
 
 
     /**
