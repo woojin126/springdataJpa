@@ -1,4 +1,4 @@
-package project.datajpa.repository;
+package project.datajpa.repository.projection;
 
 //중첩구조 Projections
 public interface NestedClosedProjections {
