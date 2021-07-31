@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import project.datajpa.dto.MemberDto;
 import project.datajpa.entity.Member;
+import project.datajpa.repository.nativeplusproejction.MemberProjection;
 import project.datajpa.repository.projection.UsernameOnly;
 import project.datajpa.repository.projection.UsernameOnlyDto;
 
@@ -170,18 +171,9 @@ public interface MemberRepository extends JpaRepository<Member,Long>, MemberRepo
 
 
     //native query + projections 이건쓸만하다
-    @Query(value = "select m.MEMBER_ID as id, m.USERNAME, t.NAME as teamName " +
-            " from MEMBER m left join TEAM t ",
-            countQuery = "select count(*) from member " ,
-            nativeQuery = true)default
-    Page<MemberProjection> findByNativeProjection() {
-        return findByNativeProjection();
-    }
-
-    //native query + projections 이건쓸만하다
-    @Query(value = "select m.MEMBER_ID as id, m.USERNAME, t.NAME as teamName " +
-            " from MEMBER m left join TEAM t ",
-            countQuery = "select count(*) from member " ,
+    @Query(value = " select m.member_id as id , m.username ,t.name as teamName " +
+            " from member m left join team t on m.team_id = t.team_id ",
+            countQuery = "select count(*) from member ",
             nativeQuery = true)
-    Page<MemberProjection> findByNativeProjection(Pageable pageable);
+    Page<MemberProjection> findByNativeAddProjection(Pageable pageable);
 }

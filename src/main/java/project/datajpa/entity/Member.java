@@ -19,7 +19,9 @@ public class Member extends DataBaseEntity {
     @GeneratedValue
     @Column(name = "member_id")
     private Long id;
+
     private String username;
+
     private int age;
 
     @ManyToOne(fetch = FetchType.LAZY)
