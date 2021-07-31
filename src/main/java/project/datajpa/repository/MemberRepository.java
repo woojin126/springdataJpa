@@ -2,12 +2,12 @@ package project.datajpa.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 import project.datajpa.dto.MemberDto;
 import project.datajpa.entity.Member;
-import project.datajpa.entity.Team;
+import project.datajpa.repository.projection.UsernameOnly;
+import project.datajpa.repository.projection.UsernameOnlyDto;
 
 import javax.persistence.LockModeType;
 import javax.persistence.QueryHint;
@@ -51,7 +51,7 @@ public interface MemberRepository extends JpaRepository<Member,Long>, MemberRepo
      *         query="select m from Member m where m.username = :username"
      * )
      *
-     *   @param 은명화하게 Member엔티티에 명확한 JQPL 이있을떄 :username <- 이게잇을때
+     *   @param은 명확하게 Member엔티티에 명확한 JQPL 이있을떄 :username <- 이게잇을때
      *   --------------------------------------
      *  @Query(name = "Member.findByUsername") // <- 주석처리해도 알아서잘 찾아서 돌아감..
      *  extends JpaRepository<Member,Long>
@@ -144,5 +144,44 @@ public interface MemberRepository extends JpaRepository<Member,Long>, MemberRepo
     @Lock(LockModeType.PESSIMISTIC_WRITE)//JPA가 제공
     List<Member> findLockByUsername(String username);
 
-    //Projections 
+    //Projections //DTO 필요한 필드만 뽑아서 반환하는 기능
+    //UsernameOnly == 인터페이스 기반조회
+    List<UsernameOnly> findProjectionInfaByUsername(@Param("username") String username);
+    // UsernameOnlyDto == 클래스기반
+    List<UsernameOnlyDto> findProjectionClassByUsername(@Param("username") String username);
+
+    /*제네릭을 이용한 동적Projections
+    어쩔떈 유저네임, 어쩔떈 나이 어쩔댄 둘다, 
+    그럴때 아래제네릭을쓰면 똑같은 구문이나감
+     */
+    <T> List<T> findProjectionsByUsername(@Param("username") String username,Class<T> type) ;
+
+    /*native query
+     문제가큼..
+     그냥 native쿼리 사용할바에 jdbcTemplate or mybatis 권장
+     엔티티를 가져올때 엔티티에맞게 select절에 다 명시해야한다.
+     "select username from member where username = ?
+     Sort 파라미터를 통한 정렬이 정상 동작 안될수가있다.
+     JPQL처럼 애플리케이션 로딩 시점에 문법 확인불가
+     동적 쿼리불가
+     */
+    @Query(value = "select * from member where username = ?",nativeQuery = true)
+    Member findByNativeQuery(String username);
+
+
+    //native query + projections 이건쓸만하다
+    @Query(value = "select m.MEMBER_ID as id, m.USERNAME, t.NAME as teamName " +
+            " from MEMBER m left join TEAM t ",
+            countQuery = "select count(*) from member " ,
+            nativeQuery = true)default
+    Page<MemberProjection> findByNativeProjection() {
+        return findByNativeProjection();
+    }
+
+    //native query + projections 이건쓸만하다
+    @Query(value = "select m.MEMBER_ID as id, m.USERNAME, t.NAME as teamName " +
+            " from MEMBER m left join TEAM t ",
+            countQuery = "select count(*) from member " ,
+            nativeQuery = true)
+    Page<MemberProjection> findByNativeProjection(Pageable pageable);
 }
